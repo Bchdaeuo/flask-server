@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-import bcrypt
-import os
+import bcrypt, base64, os
 
 app = Flask(__name__)
 
@@ -21,43 +20,47 @@ def signup():
     data = request.json
     username = data.get("username")
     password = data.get("password")
+    nickname = data.get("nickname")  # 여기 추가
 
     if not username or not password:
         return jsonify({"success": False, "message": "아이디와 비밀번호를 모두 입력하세요."}), 400
 
-    # 이미 존재하는 아이디인지 확인
     if users_collection.find_one({"username": username}):
         return jsonify({"success": False, "message": "이미 존재하는 아이디입니다."}), 409
 
-    # 비밀번호 해시 처리
-    hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    hashed_pw_str = base64.b64encode(hashed_pw).decode('utf-8')
 
-    # DB에 저장
     users_collection.insert_one({
         "username": username,
-        "password": hashed_pw
+        "password": hashed_pw_str,
+        "nickname": nickname if nickname else username
     })
 
     return jsonify({"success": True, "message": "회원가입 성공!"})
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json()
     username = data.get("username")
     password = data.get("password")
 
-    if not username or not password:
-        return jsonify({"success": False, "message": "아이디와 비밀번호를 모두 입력하세요."}), 400
-
     user = users_collection.find_one({"username": username})
     if not user:
-        return jsonify({"success": False, "message": "등록된 아이디가 없습니다."}), 404
+        return jsonify({"success": False, "message": "존재하지 않는 사용자입니다."}), 404
 
-    # 비밀번호 검증
-    if bcrypt.checkpw(password.encode("utf-8"), user["password"]):
-        return jsonify({"success": True, "message": "로그인 성공!"})
+    stored_hash_str = user["password"]
+    try:
+        stored_hash = base64.b64decode(stored_hash_str.encode("utf-8"))
+    except Exception:
+        return jsonify({"success": False, "message": "해시 디코딩 오류"}), 500
+
+    if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
+        # 닉네임 포함해서 반환
+        nickname = user.get("nickname", username)
+        return jsonify({"success": True, "message": "로그인 성공!", "nickname": nickname}), 200
     else:
-        return jsonify({"success": False, "message": "비밀번호가 올바르지 않습니다."}), 401
+        return jsonify({"success": False, "message": "비밀번호가 일치하지 않습니다."}), 401
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
