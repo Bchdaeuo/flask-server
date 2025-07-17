@@ -5,7 +5,7 @@ import bcrypt, base64, os
 
 app = Flask(__name__)
 
-# MongoDB Atlas 연결 문자열 (환경변수 MONGO_URI로 설정 권장)
+# MongoDB Atlas 연결 문자열
 MONGO_URI = "mongodb+srv://admin:admin@cluster0.3mojim2.mongodb.net/mydatabase?retryWrites=true&w=majority"
 client = MongoClient(MONGO_URI)
 db = client.mydatabase
@@ -56,11 +56,38 @@ def login():
         return jsonify({"success": False, "message": "해시 디코딩 오류"}), 500
 
     if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
-        # 닉네임 포함해서 반환
         nickname = user.get("nickname", username)
         return jsonify({"success": True, "message": "로그인 성공!", "nickname": nickname}), 200
     else:
         return jsonify({"success": False, "message": "비밀번호가 일치하지 않습니다."}), 401
+
+@app.route("/delete_account", methods=["POST"])
+def delete_account():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"success": False, "message": "아이디와 비밀번호를 모두 입력하세요."}), 400
+
+    user = users_collection.find_one({"username": username})
+    if not user:
+        return jsonify({"success": False, "message": "존재하지 않는 사용자입니다."}), 404
+
+    stored_hash_str = user["password"]
+    try:
+        stored_hash = base64.b64decode(stored_hash_str.encode("utf-8"))
+    except Exception:
+        return jsonify({"success": False, "message": "해시 디코딩 오류"}), 500
+
+    if not bcrypt.checkpw(password.encode("utf-8"), stored_hash):
+        return jsonify({"success": False, "message": "비밀번호가 일치하지 않습니다."}), 401
+
+    result = users_collection.delete_one({"username": username})
+    if result.deleted_count == 1:
+        return jsonify({"success": True, "message": "회원 탈퇴 완료."})
+    else:
+        return jsonify({"success": False, "message": "사용자를 찾을 수 없습니다."}), 404
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
