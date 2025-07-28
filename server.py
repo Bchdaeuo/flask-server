@@ -13,14 +13,14 @@ users_collection = db.users
 
 @app.route("/")
 def home():
-    return "Hello from Flask with MongoDB!"
+    return "서버가 정상적으로 가동되고 있습니다."
 
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
     username = data.get("username")
     password = data.get("password")
-    nickname = data.get("nickname")  # 여기 추가
+    nickname = data.get("nickname")
 
     if not username or not password:
         return jsonify({"success": False, "message": "아이디와 비밀번호를 모두 입력하세요."}), 400
