@@ -13,7 +13,7 @@ users_collection = db.users
 
 @app.route("/")
 def home():
-    return "서버가 정상적으로 가동되고 있습니다."
+    return "로그인 및 회원가입 인증 서버가 원활히 작동하고 있습니다."
 
 @app.route("/signup", methods=["POST"])
 def signup():
