@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import bcrypt, base64, os
 
 app = Flask(__name__)
+CORS(app)
 
 # MongoDB Atlas 연결 문자열
 MONGO_URI = "mongodb+srv://admin:admin@cluster0.3mojim2.mongodb.net/mydatabase?retryWrites=true&w=majority"
