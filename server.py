@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # MongoDB Atlas 연결 문자열
-MONGO_URI = "mongodb+srv://admin:admin@cluster0.3mojim2.mongodb.net/mydatabase?retryWrites=true&w=majority"
+MONGO_URI = os.environ.get("MONGO_URI")
 client = MongoClient(MONGO_URI)
 db = client.mydatabase
 users_collection = db.users
