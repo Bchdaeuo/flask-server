@@ -5,8 +5,8 @@ from bson.objectid import ObjectId
 import bcrypt, base64, os
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)  # ✅ 세션 쿠키를 CORS로 허용
-app.secret_key = os.environ.get("SECRET_KEY", "default_secret_key")  # ✅ 세션 암호화용 키
+CORS(app, supports_credentials=True)
+app.secret_key = os.environ.get("SECRET_KEY", "default_secret_key")
 
 # MongoDB Atlas 연결
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -20,7 +20,7 @@ def home():
     return "로그인 및 회원가입 인증 서버가 원활히 작동하고 있습니다."
 
 
-# ✅ 회원가입
+# 회원가입
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
@@ -46,7 +46,7 @@ def signup():
     return jsonify({"success": True, "message": "회원가입 성공!"})
 
 
-# ✅ 로그인
+# 로그인
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -77,7 +77,7 @@ def login():
         return jsonify({"success": False, "message": "비밀번호가 일치하지 않습니다."}), 401
 
 
-# ✅ 로그인 상태 확인
+# 로그인 상태 확인
 @app.route("/check_session", methods=["GET"])
 def check_session():
     if "user_id" in session:
@@ -90,14 +90,14 @@ def check_session():
         return jsonify({"logged_in": False})
 
 
-# ✅ 로그아웃
+# 로그아웃
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return jsonify({"success": True, "message": "로그아웃 완료"})
 
 
-# ✅ 회원 탈퇴
+# 회원 탈퇴
 @app.route("/delete_account", methods=["POST"])
 def delete_account():
     data = request.get_json()
@@ -119,10 +119,27 @@ def delete_account():
 
     users_collection.delete_one({"username": username})
 
-    # ✅ 세션 비우기
+    # 세션 비우기
     session.clear()
 
     return jsonify({"success": True, "message": "회원 탈퇴 완료."})
+
+# 서버 상태 확인
+@app.route("/status", methods=["GET"])
+def status():
+    server_status = {
+        "server": "online",
+        "message": "로그인 및 회원가입 서버가 정상 작동 중입니다."
+    }
+
+    try:
+        client.admin.command("ping")
+        server_status["database"] = "online"
+    except Exception as e:
+        server_status["database"] = "offline"
+        server_status["db_error"] = str(e)
+
+    return jsonify(server_status)
 
 
 if __name__ == "__main__":
