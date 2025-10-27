@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-import bcrypt, base64, os
+import bcrypt, base64, os, psutil
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -140,6 +140,20 @@ def status():
         server_status["db_error"] = str(e)
 
     return jsonify(server_status)
+
+# 서버 사용량 확인
+@app.route("/metrics")
+def metrics():
+    cpu = psutil.cpu_percent(interval=0.5)
+    mem = psutil.virtual_memory()
+    net = psutil.net_io_counters()
+
+    return jsonify({
+        "cpu_percent": cpu,
+        "memory_percent": mem.percent,
+        "sent_MB": round(net.bytes_sent / 1024 / 1024, 2),
+        "recv_MB": round(net.bytes_recv / 1024 / 1024, 2)
+    })
 
 
 if __name__ == "__main__":
